@@ -3,6 +3,12 @@ wandb/
 models/
 features/
 results/
+checkpoints/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+*.safetensors
+*.ckpt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -148,3 +154,5 @@ core.*
 
 # Allow
 !src/evaluation/misc/results_dbs/*
+
+*.pt

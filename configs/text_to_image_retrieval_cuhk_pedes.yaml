@@ -1,0 +1,20 @@
+env_file: env/.env
+dataset: cuhk-pedes
+dataset_root: ""
+checkpoint_dir: ../TripletCLIP/checkpoints/CC12M_NegCLIP_ViTB12
+model_label: NegCLIP
+test_split: test
+img_height: 384
+img_width: 128
+batch_size: 128
+num_workers: 0
+device: auto
+seed: 42
+top_k:
+  - 1
+  - 5
+  - 10
+max_image_samples: 0
+max_text_samples: 0
+output_json: ""
+no_amp: false
