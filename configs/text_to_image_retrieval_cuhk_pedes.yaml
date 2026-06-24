@@ -1,7 +1,7 @@
 env_file: env/.env
 dataset: cuhk-pedes
 dataset_root: ""
-checkpoint_dir: ../TripletCLIP/checkpoints/CC12M_NegCLIP_ViTB12
+checkpoint_dir: checkpoints/negCLIP.pt
 model_label: NegCLIP
 test_split: test
 img_height: 384

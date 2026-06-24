@@ -18,7 +18,6 @@ import yaml
 from PIL import Image
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-from transformers import AutoModel
 
 PerturbationTag = Literal["swap_att", "replace_att", "other"]
 
@@ -109,41 +108,29 @@ class ReIDTextItem:
     person_id: int
 
 
-class HubReIDCLIP(torch.nn.Module):
+class NegCLIPModel(torch.nn.Module):
     def __init__(
         self,
-        checkpoint_dir: Path,
+        checkpoint_path: Path,
         device: torch.device,
         img_height: int,
         img_width: int,
     ) -> None:
         super().__init__()
-        self.vision = AutoModel.from_pretrained(
-            str(checkpoint_dir / "vision-encoder"),
-            trust_remote_code=True,
-        )
-        self.text = AutoModel.from_pretrained(
-            str(checkpoint_dir / "text-encoder"),
-            trust_remote_code=True,
-        )
-        self.vision.to(device).eval()
-        self.text.to(device).eval()
-        _, _, self.preprocess = open_clip.create_model_and_transforms(
+        self.model, _, self.preprocess = open_clip.create_model_and_transforms(
             "ViT-B-32",
-            pretrained="openai",
+            pretrained=str(checkpoint_path),
+            device=device,
             force_image_size=(img_height, img_width),
         )
+        self.model.eval()
         self.tokenizer = open_clip.get_tokenizer("ViT-B-32")
 
     def encode_image(self, images: torch.Tensor) -> torch.Tensor:
-        return self.vision(
-            {"pixel_values": images, "interpolate_pos_encoding": True}
-        )
+        return self.model.encode_image(images)
 
     def encode_text(self, text_tokens: torch.Tensor) -> torch.Tensor:
-        attention_mask = (text_tokens != 0).long()
-        outputs = self.text(input_ids=text_tokens, attention_mask=attention_mask)
-        return outputs.text_embeds
+        return self.model.encode_text(text_tokens)
 
 
 def normalize_dataset_name(dataset: str) -> str:
@@ -495,12 +482,12 @@ def require_config_path(env_key: str, config_prefix: str) -> Path:
     return path
 
 
-def load_hub_model(config: SimpleNamespace, device: torch.device) -> HubReIDCLIP:
-    checkpoint_dir = Path(config.checkpoint_dir).expanduser()
-    if not (checkpoint_dir / "vision-encoder").is_dir():
-        raise FileNotFoundError(f"Hub checkpoint not found: {checkpoint_dir}")
-    model = HubReIDCLIP(
-        checkpoint_dir,
+def load_model(config: SimpleNamespace, device: torch.device) -> NegCLIPModel:
+    checkpoint_path = Path(config.checkpoint_dir).expanduser()
+    if not checkpoint_path.is_file():
+        raise FileNotFoundError(f"Checkpoint not found: {checkpoint_path}")
+    model = NegCLIPModel(
+        checkpoint_path,
         device,
         int(config.img_height),
         int(config.img_width),
@@ -609,7 +596,7 @@ def _collate_reid_texts(batch: list[dict], tokenizer) -> dict:
 
 @torch.no_grad()
 def encode_unique_images(
-    model: HubReIDCLIP,
+    model: NegCLIPModel,
     image_paths: list[Path],
     *,
     batch_size: int,
@@ -640,7 +627,7 @@ def encode_unique_images(
 
 @torch.no_grad()
 def encode_unique_texts(
-    model: HubReIDCLIP,
+    model: NegCLIPModel,
     captions: list[str],
     *,
     batch_size: int,
@@ -671,7 +658,7 @@ def encode_unique_texts(
 
 @torch.no_grad()
 def encode_reid_images(
-    model: HubReIDCLIP,
+    model: NegCLIPModel,
     items: list[ReIDImageItem],
     *,
     batch_size: int,
@@ -702,7 +689,7 @@ def encode_reid_images(
 
 @torch.no_grad()
 def encode_reid_texts(
-    model: HubReIDCLIP,
+    model: NegCLIPModel,
     items: list[ReIDTextItem],
     *,
     batch_size: int,
@@ -768,7 +755,7 @@ def run_sugarcrepe(config_path: Path) -> None:
     if not probes:
         raise RuntimeError(f"No compositional probes found for split={config.test_split!r}.")
     image_paths, captions = collect_probe_vocabulary(probes)
-    model = load_hub_model(config, device)
+    model = load_model(config, device)
     use_amp = device.type == "cuda" and not config.no_amp
     image_features_tensor = encode_unique_images(
         model,
@@ -845,7 +832,7 @@ def run_text_to_image_retrieval(config_path: Path) -> None:
         text_items = text_items[: int(config.max_text_samples)]
     if not image_items or not text_items:
         raise RuntimeError(f"No records found for split={config.test_split!r}.")
-    model = load_hub_model(config, device)
+    model = load_model(config, device)
     use_amp = device.type == "cuda" and not config.no_amp
     image_features, image_ids = encode_reid_images(
         model,

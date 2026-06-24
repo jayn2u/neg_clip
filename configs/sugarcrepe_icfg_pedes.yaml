@@ -5,7 +5,7 @@ negative_pedestrians_root: /mnt/data/negative-pedestrians/outputs
 negative_model: gemma4:e4b
 negative_prompt: tripletclip_reid.yaml
 negative_annotation: auto
-checkpoint_dir: ../TripletCLIP/checkpoints/CC12M_NegCLIP_ViTB12
+checkpoint_dir: checkpoints/negCLIP.pt
 model_label: NegCLIP
 test_split: test
 img_height: 384
