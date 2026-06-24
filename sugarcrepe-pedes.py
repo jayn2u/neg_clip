@@ -122,6 +122,7 @@ class NegCLIPModel(torch.nn.Module):
             pretrained=str(checkpoint_path),
             device=device,
             force_image_size=(img_height, img_width),
+            weights_only=False,
         )
         self.model.eval()
         self.tokenizer = open_clip.get_tokenizer("ViT-B-32")
