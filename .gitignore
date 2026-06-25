@@ -4,11 +4,16 @@ models/
 features/
 results/
 checkpoints/
+artifacts/
+tmp/
 .ruff_cache/
 .pytest_cache/
 .mypy_cache/
-*.safetensors
+*.pth
+*.pt
 *.ckpt
+*.part
+*.safetensors
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -155,5 +160,3 @@ core.*
 
 # Allow
 !src/evaluation/misc/results_dbs/*
-
-*.pt
