@@ -14,6 +14,7 @@ tmp/
 *.ckpt
 *.part
 *.safetensors
+*.tar.gz
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
